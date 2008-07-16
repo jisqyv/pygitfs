@@ -1,0 +1,3 @@
+*.py[co]
+/gitfs/test/tmp
+/.coverage
