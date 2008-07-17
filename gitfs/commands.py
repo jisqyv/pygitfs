@@ -18,10 +18,13 @@ def init_bare(repo):
 def fast_import(
     repo,
     commits,
+    ref=None,
     ):
     """
     Create an initial commit.
     """
+    if ref is None:
+        ref = 'refs/heads/master'
     child = subprocess.Popen(
         args=[
             'git',
@@ -47,12 +50,13 @@ data %(len)d
                 content=filedata['content'],
                 ))
         child.stdin.write("""\
-commit refs/heads/master
+commit %(ref)s
 author %(author)s %(author_time)s
 committer %(committer)s %(commit_time)s
 data %(commit_msg_len)d
 %(commit_msg)s
 """ % dict(
+                ref=ref,
                 author=commit.get('author', commit['committer']),
                 author_time=commit.get('author_time', commit['commit_time']),
                 committer=commit['committer'],
@@ -334,3 +338,105 @@ def ls_files(
     returncode = process.wait()
     if returncode != 0:
         raise RuntimeError('git ls-files failed')
+
+def write_tree(repo, index):
+    env = {}
+    env.update(os.environ)
+    env['GIT_INDEX_FILE'] = index
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'write-tree',
+            ],
+        close_fds=True,
+        env=env,
+        stdout=subprocess.PIPE,
+        )
+    sha = process.stdout.read().rstrip('\n')
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git write-tree failed')
+    if not sha:
+        raise RuntimeError('git write-tree did not return a hash')
+    return sha
+
+def commit_tree(
+    repo,
+    tree,
+    parents=None,
+    message=None,
+    author_name=None,
+    author_email=None,
+    author_date=None,
+    committer_name=None,
+    committer_email=None,
+    committer_date=None,
+    ):
+    if parents is None:
+        parents = []
+    if message is None:
+        message = ''
+    env = {}
+    env.update(os.environ)
+    if author_name is not None:
+	env['GIT_AUTHOR_NAME'] = author_name
+    if author_email is not None:
+	env['GIT_AUTHOR_EMAIL'] = author_email
+    if author_date is not None:
+	env['GIT_AUTHOR_DATE'] = author_date
+    if committer_name is not None:
+	env['GIT_COMMITTER_NAME'] = committer_name
+    if committer_email is not None:
+	env['GIT_COMMITTER_EMAIL'] = committer_email
+    if committer_date is not None:
+	env['GIT_COMMITTER_DATE'] = committer_date
+
+    args = [
+        'git',
+        '--git-dir=%s' % repo,
+        'commit-tree',
+        tree,
+        ]
+    for p in parents:
+        args.extend(['-p', p])
+    process = subprocess.Popen(
+        args=args,
+        close_fds=True,
+        env=env,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        )
+    process.stdin.write(message)
+    process.stdin.close()
+    sha = process.stdout.read().rstrip('\n')
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git commit-tree failed')
+    if not sha:
+        raise RuntimeError('git commit-tree did not return a hash')
+    return sha
+
+def update_ref(
+    repo,
+    ref,
+    newvalue,
+    oldvalue=None,
+    reason=None,
+    ):
+    args = [
+            'git',
+            '--git-dir=%s' % repo,
+            'update-ref',
+            ref,
+            newvalue,
+            ]
+    if oldvalue is not None:
+        args.append(oldvalue)
+    process = subprocess.Popen(
+        args=args,
+        close_fds=True,
+        )
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git update-ref failed')
