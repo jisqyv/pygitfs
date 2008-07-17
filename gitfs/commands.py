@@ -186,38 +186,25 @@ def ls_tree(
     if returncode != 0:
         raise RuntimeError('git ls-tree failed')
 
-def cat_file_by_path(repo, path, type_=None, rev=None):
+def cat_file(repo, sha1, type_=None):
     if type_ is None:
         type_ = 'blob'
-    if rev is None:
-        rev = 'HEAD'
-    for data in ls_tree(
-        repo=repo,
-        path=path,
-        treeish=rev,
-        children=False,
-        ):
-        if data['type'] != type_:
-            raise RuntimeError(
-                'found object, but type does not match: %r' \
-                    % data['type']
-                )
-        process = subprocess.Popen(
-            args=[
-                'git',
-                '--git-dir=%s' % repo,
-                'cat-file',
-                'blob',
-                data['object'],
-                ],
-            close_fds=True,
-            stdout=subprocess.PIPE,
-            )
-        data = process.stdout.read()
-        returncode = process.wait()
-        if returncode != 0:
-            raise RuntimeError('git cat-file failed')
-        return data
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'cat-file',
+            type_,
+            sha1,
+            ],
+        close_fds=True,
+        stdout=subprocess.PIPE,
+        )
+    data = process.stdout.read()
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git cat-file failed')
+    return data
 
 def write_object(repo, content):
     process = subprocess.Popen(

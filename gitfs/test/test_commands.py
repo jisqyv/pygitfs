@@ -166,49 +166,25 @@ def test_ls_tree_all():
         )
     assert_raises(StopIteration, g.next)
 
-def test_cat_file_by_path():
+def test_cat_file():
     tmp = maketemp()
     commands.init_bare(tmp)
-    commands.fast_import(
-        repo=tmp,
-        commits=[
-            dict(
-                message='one',
-                committer='John Doe <jdoe@example.com>',
-                commit_time='1216235872 +0300',
-                files=[
-                    dict(
-                        path='quux/foo',
-                        content='FOO',
-                        ),
-                    ],
-                ),
-            ],
-        )
-    g = commands.cat_file_by_path(repo=tmp, path='quux/foo')
-    eq(g, 'FOO')
+    sha1 = commands.write_object(repo=tmp, content='FOO')
+    eq(sha1, 'd96c7efbfec2814ae0301ad054dc8d9fc416c9b5')
+    got = commands.cat_file(repo=tmp, sha1=sha1)
+    eq(got, 'FOO')
 
-def test_cat_file_by_path_bad_notfound():
+def test_cat_file_bad_notfound():
     tmp = maketemp()
     commands.init_bare(tmp)
-    commands.fast_import(
+    e = assert_raises(
+        # TODO better exception for this
+        RuntimeError,
+        commands.cat_file,
         repo=tmp,
-        commits=[
-            dict(
-                message='one',
-                committer='John Doe <jdoe@example.com>',
-                commit_time='1216235872 +0300',
-                files=[
-                    dict(
-                        path='quux/foo',
-                        content='FOO',
-                        ),
-                    ],
-                ),
-            ],
+        sha1='deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
         )
-    g = commands.cat_file_by_path(repo=tmp, path='does-not-exist')
-    assert g is None
+    eq(str(e), 'git cat-file failed')
 
 def test_write_object():
     tmp = maketemp()
