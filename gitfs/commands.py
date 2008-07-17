@@ -135,7 +135,7 @@ def ls_tree(
     if treeish is None:
         treeish = 'HEAD'
     if children is None:
-        children = True
+        children = False
     assert not path.startswith('/')
     assert not path.endswith('/')
     if children:
