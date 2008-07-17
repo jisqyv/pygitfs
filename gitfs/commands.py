@@ -186,7 +186,7 @@ def ls_tree(
     if returncode != 0:
         raise RuntimeError('git ls-tree failed')
 
-def cat_file(repo, sha1, type_=None):
+def cat_file(repo, object, type_=None):
     if type_ is None:
         type_ = 'blob'
     process = subprocess.Popen(
@@ -195,7 +195,7 @@ def cat_file(repo, sha1, type_=None):
             '--git-dir=%s' % repo,
             'cat-file',
             type_,
-            sha1,
+            object,
             ],
         close_fds=True,
         stdout=subprocess.PIPE,
@@ -267,11 +267,11 @@ def update_index(repo, index, files):
         )
     for filedata in files:
         process.stdin.write(
-            "%(mode)s %(type)s %(sha1)s %(stage)s\t%(path)s\0"
+            "%(mode)s %(type)s %(object)s %(stage)s\t%(path)s\0"
             % dict(
                 mode=filedata.get('mode', '100644'),
                 type=filedata.get('type', 'blob'),
-                sha1=filedata['sha1'],
+                object=filedata['object'],
                 stage=filedata.get('stage', '0'),
                 path=filedata['path'],
                 ),

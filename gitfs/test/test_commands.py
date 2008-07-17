@@ -171,7 +171,7 @@ def test_cat_file():
     commands.init_bare(tmp)
     sha1 = commands.write_object(repo=tmp, content='FOO')
     eq(sha1, 'd96c7efbfec2814ae0301ad054dc8d9fc416c9b5')
-    got = commands.cat_file(repo=tmp, sha1=sha1)
+    got = commands.cat_file(repo=tmp, object=sha1)
     eq(got, 'FOO')
 
 def test_cat_file_bad_notfound():
@@ -182,7 +182,7 @@ def test_cat_file_bad_notfound():
         RuntimeError,
         commands.cat_file,
         repo=tmp,
-        sha1='deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+        object='deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
         )
     eq(str(e), 'git cat-file failed')
 
@@ -241,11 +241,11 @@ def test_update_index():
         index=index,
         files=[
             dict(
-                sha1=sha_foo,
+                object=sha_foo,
                 path='quux/foo',
                 ),
             dict(
-                sha1=sha_bar,
+                object=sha_bar,
                 path='bar',
                 ),
             ],
