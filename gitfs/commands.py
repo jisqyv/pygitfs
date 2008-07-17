@@ -278,3 +278,67 @@ def update_index(repo, index, files):
     returncode = process.wait()
     if returncode != 0:
         raise RuntimeError('git read-tree failed')
+
+def ls_files(
+    repo,
+    index,
+    path=None,
+    children=None,
+    ):
+    if path is None:
+        path = ''
+    if children is None:
+        children = True
+    assert not path.startswith('/')
+    assert not path.endswith('/')
+    if children:
+        if path:
+            path = path+'/'
+    env = {}
+    env.update(os.environ)
+    env['GIT_INDEX_FILE'] = index
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'ls-files',
+            '--stage',
+            '--full-name',
+            '-z',
+            '--',
+            path,
+            ],
+        close_fds=True,
+        env=env,
+        stdout=subprocess.PIPE,
+        )
+    buf = ''
+    while True:
+        new = process.stdout.read(8192)
+        buf += new
+        while True:
+            try:
+                (entry, buf) = buf.split('\0', 1)
+            except ValueError:
+                break
+            meta, filename = entry.split('\t', 1)
+            mode, object, stage = meta.split(' ', 2)
+            assert stage == '0', 'unprepared to handle merges'
+            if children:
+                assert filename.startswith(path)
+                basename = filename[len(path):]
+            else:
+                basename = filename
+            yield dict(
+                mode=mode,
+                object=object,
+                name=basename,
+                )
+        if not new:
+            break
+    if buf:
+        raise RuntimeError(
+            'git ls-files output did not end in NUL')
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git ls-files failed')

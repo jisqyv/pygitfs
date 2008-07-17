@@ -253,3 +253,104 @@ def test_update_index():
     assert os.path.isfile(index)
     st = os.stat(index)
     assert st.st_size > 0
+
+def test_ls_files():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    index = os.path.join(tmp, 'index')
+    commands.fast_import(
+        repo=repo,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        mode='100755',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.read_tree(
+        repo=repo,
+        treeish='HEAD',
+        index=index,
+        )
+    g = commands.ls_files(
+        repo=repo,
+        index=index,
+        )
+    eq(
+        g.next(),
+        dict(
+            mode='100755',
+            object='add8373108657cb230a5379a6fcdaab73f330642',
+            name='bar',
+            ),
+        )
+    eq(
+        g.next(),
+        dict(
+            mode='100644',
+            object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
+            name='quux/foo',
+            ),
+        )
+    assert_raises(StopIteration, g.next)
+
+def test_ls_files_path():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    index = os.path.join(tmp, 'index')
+    commands.fast_import(
+        repo=repo,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        mode='100755',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.read_tree(
+        repo=repo,
+        treeish='HEAD',
+        index=index,
+        )
+    g = commands.ls_files(
+        repo=repo,
+        index=index,
+        path='quux',
+        )
+    eq(
+        g.next(),
+        dict(
+            mode='100644',
+            object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
+            name='foo',
+            ),
+        )
+    assert_raises(StopIteration, g.next)
