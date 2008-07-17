@@ -228,7 +228,6 @@ def write_object(repo, content):
             '-w',
             '--stdin',
             ],
-        cwd=repo,
         close_fds=True,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
