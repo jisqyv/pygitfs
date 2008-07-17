@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 def init_bare(repo):
@@ -241,3 +242,53 @@ def write_object(repo, content):
     if not sha:
         raise RuntimeError('git hash-object did not return a hash')
     return sha
+
+def read_tree(repo, treeish, index):
+    env = {}
+    env.update(os.environ)
+    env['GIT_INDEX_FILE'] = index
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'read-tree',
+            '%s' % treeish,
+            ],
+        close_fds=True,
+        env=env,
+        )
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git read-tree failed')
+
+def update_index(repo, index, files):
+    env = {}
+    env.update(os.environ)
+    env['GIT_INDEX_FILE'] = index
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'update-index',
+            '-z',
+            '--index-info',
+            ],
+        close_fds=True,
+        env=env,
+        stdin=subprocess.PIPE,
+        )
+    for filedata in files:
+        process.stdin.write(
+            "%(mode)s %(type)s %(sha1)s %(stage)s\t%(path)s\0"
+            % dict(
+                mode=filedata.get('mode', '100644'),
+                type=filedata.get('type', 'blob'),
+                sha1=filedata['sha1'],
+                stage=filedata.get('stage', '0'),
+                path=filedata['path'],
+                ),
+            )
+    process.stdin.close()
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git read-tree failed')

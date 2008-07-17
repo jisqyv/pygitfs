@@ -215,3 +215,65 @@ def test_write_object():
     commands.init_bare(tmp)
     got = commands.write_object(repo=tmp, content='FOO')
     eq(got, 'd96c7efbfec2814ae0301ad054dc8d9fc416c9b5')
+
+def test_read_tree():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    commands.fast_import(
+        repo=repo,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    index = os.path.join(tmp, 'index')
+
+    assert not os.path.exists(index)
+    commands.read_tree(
+        repo=repo,
+        treeish='HEAD',
+        index=index,
+        )
+    assert os.path.isfile(index)
+    st = os.stat(index)
+    assert st.st_size > 0
+
+def test_update_index():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    index = os.path.join(tmp, 'index')
+
+    sha_foo = commands.write_object(repo=repo, content='FOO')
+    sha_bar = commands.write_object(repo=repo, content='BAR')
+
+    assert not os.path.exists(index)
+    commands.update_index(
+        repo=repo,
+        index=index,
+        files=[
+            dict(
+                sha1=sha_foo,
+                path='quux/foo',
+                ),
+            dict(
+                sha1=sha_bar,
+                path='bar',
+                ),
+            ],
+        )
+    assert os.path.isfile(index)
+    st = os.stat(index)
+    assert st.st_size > 0
