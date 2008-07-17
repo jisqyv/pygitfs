@@ -200,6 +200,7 @@ def cat_file(repo, sha1, type_=None):
         close_fds=True,
         stdout=subprocess.PIPE,
         )
+    # TODO don't read in to RAM
     data = process.stdout.read()
     returncode = process.wait()
     if returncode != 0:
@@ -207,6 +208,7 @@ def cat_file(repo, sha1, type_=None):
     return data
 
 def write_object(repo, content):
+    # TODO don't require content to be in RAM
     process = subprocess.Popen(
         args=[
             'git',
