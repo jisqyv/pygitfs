@@ -107,7 +107,7 @@ def test_ls_tree():
             mode='100755',
             type='blob',
             object='add8373108657cb230a5379a6fcdaab73f330642',
-            name='bar',
+            path='bar',
             ),
         )
     eq(
@@ -116,7 +116,7 @@ def test_ls_tree():
             mode='040000',
             type='tree',
             object='d513b699a47153aad2f0cb7ea2cb9fde8c177428',
-            name='quux',
+            path='quux',
             ),
         )
     assert_raises(StopIteration, g.next)
@@ -152,7 +152,7 @@ def test_ls_tree_all():
             mode='100755',
             type='blob',
             object='add8373108657cb230a5379a6fcdaab73f330642',
-            name='bar',
+            path='bar',
             ),
         )
     eq(
@@ -161,7 +161,7 @@ def test_ls_tree_all():
             mode='040000',
             type='tree',
             object='d513b699a47153aad2f0cb7ea2cb9fde8c177428',
-            name='quux',
+            path='quux',
             ),
         )
     assert_raises(StopIteration, g.next)
@@ -295,7 +295,7 @@ def test_ls_files():
         dict(
             mode='100755',
             object='add8373108657cb230a5379a6fcdaab73f330642',
-            name='bar',
+            path='bar',
             ),
         )
     eq(
@@ -303,7 +303,7 @@ def test_ls_files():
         dict(
             mode='100644',
             object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
-            name='quux/foo',
+            path='quux/foo',
             ),
         )
     assert_raises(StopIteration, g.next)
@@ -350,7 +350,7 @@ def test_ls_files_path():
         dict(
             mode='100644',
             object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
-            name='foo',
+            path='quux/foo',
             ),
         )
     assert_raises(StopIteration, g.next)

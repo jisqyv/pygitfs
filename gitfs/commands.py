@@ -166,16 +166,11 @@ def ls_tree(
                 break
             meta, filename = entry.split('\t', 1)
             mode, type_, object = meta.split(' ', 2)
-            if children:
-                assert filename.startswith(path)
-                basename = filename[len(path):]
-            else:
-                basename = filename
             yield dict(
                 mode=mode,
                 type=type_,
                 object=object,
-                name=basename,
+                path=filename,
                 )
         if not new:
             break
@@ -326,15 +321,10 @@ def ls_files(
             meta, filename = entry.split('\t', 1)
             mode, object, stage = meta.split(' ', 2)
             assert stage == '0', 'unprepared to handle merges'
-            if children:
-                assert filename.startswith(path)
-                basename = filename[len(path):]
-            else:
-                basename = filename
             yield dict(
                 mode=mode,
                 object=object,
-                name=basename,
+                path=filename,
                 )
         if not new:
             break
