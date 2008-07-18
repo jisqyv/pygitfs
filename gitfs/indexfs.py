@@ -93,9 +93,6 @@ class IndexFS(WalkMixin):
             return data['object']
 
     def open(self, mode='r'):
-        if mode not in ['r', 'w', 'a']:
-            raise NotImplementedError
-
         path_sha = hashlib.sha1(self.path).hexdigest()
         work = os.path.extsep.join([
                 self.index,
