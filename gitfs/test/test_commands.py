@@ -186,6 +186,26 @@ def test_cat_file_bad_notfound():
         )
     eq(str(e), 'git cat-file failed')
 
+def test_get_object_size():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    sha1 = commands.write_object(repo=tmp, content='FOO')
+    eq(sha1, 'd96c7efbfec2814ae0301ad054dc8d9fc416c9b5')
+    got = commands.get_object_size(repo=tmp, object=sha1)
+    eq(got, 3)
+
+def test_get_object_size_bad_notfound():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    e = assert_raises(
+        # TODO better exception for this
+        RuntimeError,
+        commands.get_object_size,
+        repo=tmp,
+        object='deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+        )
+    eq(str(e), 'git cat-file failed')
+
 def test_write_object():
     tmp = maketemp()
     commands.init_bare(tmp)

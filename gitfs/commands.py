@@ -206,6 +206,25 @@ def cat_file(repo, object, type_=None):
         raise RuntimeError('git cat-file failed')
     return data
 
+def get_object_size(repo, object):
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'cat-file',
+            '-s',
+            object,
+            ],
+        close_fds=True,
+        stdout=subprocess.PIPE,
+        )
+    data = process.stdout.read()
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git cat-file failed')
+    data = int(data)
+    return data
+
 def write_object(repo, content):
     # TODO don't require content to be in RAM
     process = subprocess.Popen(

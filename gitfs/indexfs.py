@@ -359,3 +359,17 @@ class IndexFS(WalkMixin):
         self.path = new_path.path
         # TODO don't return self, mutating is good enough
         return self
+
+    def size(self):
+        object = self._get_sha1()
+        if object is not None:
+            # it exists
+            return commands.get_object_size(
+                repo=self.repo,
+                object=object,
+                )
+        else:
+            raise OSError(
+                errno.ENOENT,
+                os.strerror(errno.ENOENT),
+                )
