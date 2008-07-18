@@ -39,15 +39,20 @@ class IndexFS(WalkMixin):
     used as temporary files. These may be left around due to a crash,
     but can be purged after two weeks, because of the above pruning
     mechanism.
+
+    Do not start two seperate IndexFS instances with the same index
+    file, that will result in file corruption and exceptions.
     """
 
-    def __init__(self, repo, index, path=None):
+    def __init__(self, repo, index, path=None, _open_files=None):
         self.repo = repo
         self.index = index
         if path is None:
             path = ''
         self.path = path
-        self.open_files = {}
+        if _open_files is None:
+            _open_files = {}
+        self.open_files = _open_files
 
     def __repr__(self):
         return '%s(path=%r, index=%r, repo=%r)' % (
@@ -68,6 +73,7 @@ class IndexFS(WalkMixin):
             repo=self.repo,
             index=self.index,
             path=os.path.join(self.path, relpath),
+            _open_files=self.open_files,
             )
 
     def child(self, *segments):
@@ -194,6 +200,7 @@ class IndexFS(WalkMixin):
             repo=self.repo,
             index=self.index,
             path=head,
+            _open_files=self.open_files,
             )
 
     def __eq__(self, other):
