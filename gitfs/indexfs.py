@@ -36,7 +36,9 @@ class IndexFS(WalkMixin):
     committed, and that should not take that long.
 
     Note that files starting with the index filename and a dot are
-    used as temporary files.
+    used as temporary files. These may be left around due to a crash,
+    but can be purged after two weeks, because of the above pruning
+    mechanism.
     """
 
     def __init__(self, repo, index, path=None):
