@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import errno
 import os
 
@@ -108,3 +110,34 @@ class Repository(object):
 
     def transaction(self, ref=None):
         return Transaction(repo=self, ref=ref)
+
+    TRANSACTION_RETRY_COUNT = 10
+
+    # I wish there was a with-based way to retry the
+    # transaction. Right now, we'll have to do it the old-school way.
+
+    def retry_transaction_fn(
+        self,
+        fn,
+        tries=None,
+        ref=None,
+        args=None,
+        kwargs=None,
+        ):
+        if tries is None:
+            tries = self.TRANSACTION_RETRY_COUNT
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+        while True:
+            try:
+                with self.transaction(ref=ref) as t:
+                    fn(t, *args, **kwargs)
+            except TransactionRaceLostError:
+                tries -= 1
+                if tries <= 0:
+                    raise
+                pass
+            else:
+                break

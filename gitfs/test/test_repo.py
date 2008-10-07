@@ -145,3 +145,70 @@ def test_commit_race():
         )
     eq(content, 'orig\nracer 1\nracer 2\nloser 3\n')
 
+def test_commit_race_syntactic_sugar():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='orig\n',
+                        mode='100755',
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    r = repo.Repository(path=tmp)
+    racecount = [0]
+
+    # this counting is for unit test verification only
+    tries = [0]
+
+    def transact(p):
+        # inject faults
+        if racecount[0] < 2:
+            racecount[0] += 1
+            r2 = repo.Repository(path=tmp)
+            with r2.transaction() as p2:
+                with p2.child('bar').open('a') as f:
+                    f.write('racer %d\n' % racecount[0])
+
+        # unit test tracking
+        tries[0] += 1
+
+        with p.child('bar').open('a') as f:
+            f.write('loser %d\n' % tries[0])
+
+## To clarify, the above without unit test crud is just:
+#     def transact(p):
+#         with p.child('bar').open('a') as f:
+#             f.write('loser\n')
+
+    r.retry_transaction_fn(transact, tries=3)
+
+    # transaction committed, now the content has changed
+    got = commands.ls_tree(
+        repo=tmp,
+        path='bar',
+        )
+    got = list(got)
+    eq(len(got), 1)
+    got = got[0]
+    object = got['object']
+    content = commands.cat_file(
+        repo=tmp,
+        object=object,
+        )
+    eq(content, 'orig\nracer 1\nracer 2\nloser 3\n')
