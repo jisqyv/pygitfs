@@ -13,6 +13,16 @@ def maybe_mkdir(*a, **kw):
         else:
             raise
 
+class TransactionRaceLostError(Exception):
+    """Transaction lost the race to update the ref."""
+
+    # caller should retry a fixed number of times, abort if tries
+    # exhausted
+
+    def __str__(self):
+        return self.__doc__
+
+
 class Transaction(object):
     def __init__(self, **kw):
         repo = kw.pop('repo', None)
@@ -71,14 +81,20 @@ class Transaction(object):
                 committer_name='pygitfs',
                 committer_email='pygitfs@invalid',
                 )
-            commands.update_ref(
-                repo=self.repo.path,
-                ref=self.ref,
-                newvalue=commit,
-                oldvalue=self.original,
-                reason='pygitfs transaction commit',
-                )
-
+            try:
+                commands.update_ref(
+                    repo=self.repo.path,
+                    ref=self.ref,
+                    newvalue=commit,
+                    oldvalue=self.original,
+                    reason='pygitfs transaction commit',
+                    )
+            except RuntimeError:
+                # TODO this could be caused by pretty much anything
+                # from OOM to invalid input, but as there's no way to
+                # tell (with current git), we'll just assume it's
+                # always caused by race condition..
+                raise TransactionRaceLostError()
 
 class Repository(object):
     def __init__(self, path):
