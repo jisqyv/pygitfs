@@ -100,6 +100,12 @@ class IndexFS(WalkMixin):
                 continue
             return data['object']
 
+        # not found
+        raise OSError(
+            errno.ENOENT,
+            os.strerror(errno.ENOENT),
+            )
+
     def open(self, mode='r'):
         path_sha = hashlib.sha1(self.path).hexdigest()
         work = os.path.extsep.join([
@@ -111,15 +117,19 @@ class IndexFS(WalkMixin):
         current_users = self.open_files.get(self.path)
         if current_users is None:
 
-            object = self._get_sha1()
-            if object is not None:
+            try:
+                object = self._get_sha1()
+            except OSError, e:
+                if e.errno == errno.ENOENT:
+                    content = ''
+                else:
+                    raise
+            else:
                 # it exists
                 content = commands.cat_file(
                     repo=self.repo,
                     object=object,
                     )
-            else:
-                content = ''
             tmp = os.path.extsep.join([
                     self.index,
                     path_sha,
@@ -371,14 +381,8 @@ class IndexFS(WalkMixin):
 
     def size(self):
         object = self._get_sha1()
-        if object is not None:
-            # it exists
-            return commands.get_object_size(
-                repo=self.repo,
-                object=object,
-                )
-        else:
-            raise OSError(
-                errno.ENOENT,
-                os.strerror(errno.ENOENT),
-                )
+        # it exists
+        return commands.get_object_size(
+            repo=self.repo,
+            object=object,
+            )
