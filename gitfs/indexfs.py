@@ -111,6 +111,26 @@ class IndexFS(WalkMixin):
             os.strerror(errno.ENOENT),
             )
 
+    def git_set_sha1(self, object):
+        """
+        Set the git sha1 for this object.
+
+        Effectively, replace the content here with the content of
+        another object. The new content has to be in the repository
+        already; this is not verified in any way.
+        """
+        commands.update_index(
+            repo=self.repo,
+            index=self.index,
+            files=[
+                dict(
+                    # TODO mode, stat the file?
+                    object=object,
+                    path=self.path,
+                    ),
+                ],
+            )
+
     def open(self, mode='r'):
         path_sha = hashlib.sha1(self.path).hexdigest()
         work = os.path.extsep.join([
@@ -164,17 +184,7 @@ class IndexFS(WalkMixin):
                 repo=self.repo,
                 content=content,
                 )
-            commands.update_index(
-                repo=self.repo,
-                index=self.index,
-                files=[
-                    dict(
-                        # TODO mode, stat the file?
-                        object=object,
-                        path=self.path,
-                        ),
-                    ],
-                )
+            self.git_set_sha1(object)
             del self.open_files[self.path]
 
     def __iter__(self):

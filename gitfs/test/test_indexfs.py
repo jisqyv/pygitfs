@@ -65,3 +65,43 @@ def test_get_sha1_nonexistent():
         )
     eq(e.errno, errno.ENOENT)
     eq(str(e), '[Errno %d] No such file or directory' % errno.ENOENT)
+
+def test_set_sha1_simple():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    index = os.path.join(tmp, 'index')
+    commands.init_bare(repo)
+    root = indexfs.IndexFS(
+        repo=repo,
+        index=index,
+        )
+    foo = root.child('foo')
+    with foo.open('w') as f:
+        f.write('foo')
+    foo_sha = foo.git_get_sha1()
+    bar = root.child('bar')
+    bar.git_set_sha1(foo_sha)
+    with bar.open() as f:
+        got = f.read()
+    eq(got, 'foo')
+
+def test_set_sha1_missing():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    index = os.path.join(tmp, 'index')
+    commands.init_bare(repo)
+    root = indexfs.IndexFS(
+        repo=repo,
+        index=index,
+        )
+    bar = root.child('bar')
+    # this succeeds but creates a broken index
+    bar.git_set_sha1('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')
+    got = bar.git_get_sha1()
+    eq(got, 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')
+    e = assert_raises(
+        # TODO this really should be more specific
+        RuntimeError,
+        bar.open,
+        )
+    eq(str(e), 'git cat-file failed')
