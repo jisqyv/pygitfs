@@ -89,7 +89,12 @@ class IndexFS(WalkMixin):
             p = p.join(segment)
         return p
 
-    def _get_sha1(self):
+    def git_get_sha1(self):
+        """
+        Get the git sha1 for the object.
+
+        Does not work on ope
+        """
         for data in commands.ls_files(
             repo=self.repo,
             index=self.index,
@@ -118,7 +123,7 @@ class IndexFS(WalkMixin):
         if current_users is None:
 
             try:
-                object = self._get_sha1()
+                object = self.git_get_sha1()
             except OSError, e:
                 if e.errno == errno.ENOENT:
                     content = ''
@@ -380,7 +385,7 @@ class IndexFS(WalkMixin):
         return self
 
     def size(self):
-        object = self._get_sha1()
+        object = self.git_get_sha1()
         # it exists
         return commands.get_object_size(
             repo=self.repo,
