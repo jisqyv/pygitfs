@@ -36,6 +36,28 @@ def test_init_repeat():
     commands.init_bare(tmp)
     check_repository(repo=tmp)
 
+def test_init_atomic():
+    tmp = maketemp()
+    commands.init_bare_atomic(
+        repo=os.path.join(tmp, 'repo'),
+        tmp=os.path.join(tmp, 'repo.42.tmp'),
+        )
+    eq(os.listdir(tmp), ['repo'])
+    check_repository(repo=os.path.join(tmp, 'repo'))
+
+def test_init_atomic_repeat():
+    tmp = maketemp()
+    commands.init_bare_atomic(
+        repo=os.path.join(tmp, 'repo'),
+        tmp=os.path.join(tmp, 'repo.42.tmp'),
+        )
+    commands.init_bare_atomic(
+        repo=os.path.join(tmp, 'repo'),
+        tmp=os.path.join(tmp, 'repo.42.tmp'),
+        )
+    eq(os.listdir(tmp), ['repo'])
+    check_repository(repo=os.path.join(tmp, 'repo'))
+
 def test_symbolic_ref_ok():
     tmp = maketemp()
     commands.init_bare(tmp)

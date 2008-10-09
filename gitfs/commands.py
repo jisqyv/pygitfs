@@ -1,4 +1,6 @@
+import errno
 import os
+import shutil
 import subprocess
 
 def init_bare(repo):
@@ -14,6 +16,41 @@ def init_bare(repo):
         )
     if returncode != 0:
         raise RuntimeError('git init failed')
+
+def init_bare_atomic(repo, tmp):
+    """
+    Initialize a bare git repository atomically.
+
+    This means the repository is only moved to its final name once the
+    initialization is complete. This means other users can
+    concurrently use any repository they happen to see at any time
+    with a final name; they will not accidentally encounter a
+    partially initialized repository, not even if the process
+    initializing a repository crashes. Then again, crashes can leave
+    temporary directories lying around.
+
+    Caller must guarantee C{tmp} uniqueness. For a single-threaded
+    process using a non-networked filesystem, something like this is
+    usually sufficient::
+
+	base = 'foo'
+	repo = '%s.git' % base
+        tmp = '%s.%d.tmp' % (base, os.getpid())
+    """
+    init_bare(tmp)
+    try:
+        os.rename(tmp, repo)
+    except OSError, e:
+        if e.errno in [
+            errno.ENOTEMPTY,
+            errno.EEXIST,
+            ]:
+            # lost the race to create it, clean up; where as git init
+            # in itself is idempotent, *this* is the reason tmp must
+            # be unique
+            shutil.rmtree(tmp)
+        else:
+            raise
 
 def fast_import(
     repo,
