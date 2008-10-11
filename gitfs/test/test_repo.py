@@ -145,3 +145,29 @@ def test_commit_race():
         )
     eq(content, 'orig\nracer 1\nracer 2\nloser 3\n')
 
+
+def test_no_initial_commit():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+
+    r = repo.Repository(path=tmp)
+    with r.transaction() as p:
+        eq(list(p), [])
+
+        with p.child('bar').open('w') as f:
+            f.write('THUD')
+
+    # transaction committed, now the content has changed
+    got = commands.ls_tree(
+        repo=tmp,
+        path='bar',
+        )
+    got = list(got)
+    eq(len(got), 1)
+    got = got[0]
+    object = got['object']
+    content = commands.cat_file(
+        repo=tmp,
+        object=object,
+        )
+    eq(content, 'THUD')

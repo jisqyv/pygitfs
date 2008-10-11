@@ -53,11 +53,12 @@ class Transaction(object):
         gitfs_dir = os.path.join(self.repo.path, 'pygitfs')
         maybe_mkdir(gitfs_dir)
         self.index = os.path.join(gitfs_dir, 'index.%d' % ident)
-        commands.read_tree(
-            repo=self.repo.path,
-            treeish=self.original,
-            index=self.index,
-            )
+        if head is not None:
+            commands.read_tree(
+                repo=self.repo.path,
+                treeish=self.original,
+                index=self.index,
+                )
         return indexfs.IndexFS(
             repo=self.repo.path,
             index=self.index,
@@ -73,10 +74,13 @@ class Transaction(object):
                 index=self.index,
                 )
             os.unlink(self.index)
+            parents = []
+            if self.original is not None:
+                parents.append(self.original)
             commit = commands.commit_tree(
                 repo=self.repo.path,
                 tree=tree,
-                parents=[self.original],
+                parents=parents,
                 message='pygitfs',
                 committer_name='pygitfs',
                 committer_email='pygitfs@invalid',
