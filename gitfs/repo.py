@@ -39,7 +39,10 @@ class Transaction(object):
             maybe_mkdir(gitfs_dir)
             ident = id(self)
             assert ident >= 0
-            index = os.path.join(gitfs_dir, 'index.%d' % ident)
+            index = os.path.join(
+                gitfs_dir,
+                'index.%d.%d' % (os.getpid(), ident),
+                )
         self.index = index
         super(Transaction, self).__init__(**kw)
 
