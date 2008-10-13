@@ -198,3 +198,52 @@ def test_index_path():
     with r.transaction(index=index_path) as p:
         assert os.path.exists(index_path)
         assert not os.path.exists(os.path.join(repo_path, 'pygitfs'))
+
+def test_no_empty_commits():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    orig = commands.rev_parse(
+        repo=tmp,
+        rev='HEAD',
+        )
+
+    r = repo.Repository(path=tmp)
+    with r.transaction() as p:
+        # nothing
+        pass
+
+    got = commands.rev_parse(
+        repo=tmp,
+        rev='HEAD',
+        )
+    eq(got, orig)
+
+def test_no_empty_commits_initial():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    r = repo.Repository(path=tmp)
+    with r.transaction() as p:
+        # nothing
+        pass
+
+    got = commands.rev_parse(
+        repo=tmp,
+        rev='HEAD',
+        )
+    eq(got, None)
