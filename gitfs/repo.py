@@ -33,6 +33,14 @@ class Transaction(object):
         if ref is None:
             ref = 'HEAD'
         self.ref = ref
+        index = kw.pop('index', None)
+        if index is None:
+            gitfs_dir = os.path.join(self.repo.path, 'pygitfs')
+            maybe_mkdir(gitfs_dir)
+            ident = id(self)
+            assert ident >= 0
+            index = os.path.join(gitfs_dir, 'index.%d' % ident)
+        self.index = index
         super(Transaction, self).__init__(**kw)
 
     def __repr__(self):
@@ -48,11 +56,6 @@ class Transaction(object):
             rev=self.ref,
             )
         self.original = head
-        ident = id(self)
-        assert ident >= 0
-        gitfs_dir = os.path.join(self.repo.path, 'pygitfs')
-        maybe_mkdir(gitfs_dir)
-        self.index = os.path.join(gitfs_dir, 'index.%d' % ident)
         if head is not None:
             commands.read_tree(
                 repo=self.repo.path,
@@ -110,5 +113,5 @@ class Repository(object):
             self.path,
             )
 
-    def transaction(self, ref=None):
-        return Transaction(repo=self, ref=ref)
+    def transaction(self, ref=None, index=None):
+        return Transaction(repo=self, ref=ref, index=index)

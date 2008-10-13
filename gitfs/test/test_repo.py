@@ -171,3 +171,30 @@ def test_no_initial_commit():
         object=object,
         )
     eq(content, 'THUD')
+
+def test_index_path():
+    tmp = maketemp()
+    repo_path = os.path.join(tmp, 'repo')
+    commands.init_bare(repo_path)
+    commands.fast_import(
+        repo=repo_path,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    index_path = os.path.join(tmp, '1nd3x')
+    r = repo.Repository(path=repo_path)
+    with r.transaction(index=index_path) as p:
+        assert os.path.exists(index_path)
+        assert not os.path.exists(os.path.join(repo_path, 'pygitfs'))
