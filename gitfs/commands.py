@@ -3,6 +3,8 @@ import os
 import shutil
 import subprocess
 
+from cStringIO import StringIO
+
 def init_bare(repo):
     returncode = subprocess.call(
         args=[
@@ -242,6 +244,65 @@ def cat_file(repo, object, type_=None):
     if returncode != 0:
         raise RuntimeError('git cat-file failed')
     return data
+
+def batch_cat_file(repo):
+    def do_batch_cat_file(repo):
+        process = subprocess.Popen(
+            args=[
+                'git',
+                '--git-dir=%s' % repo,
+                'cat-file',
+                '--batch',
+                ],
+            close_fds=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            )
+        answer = None
+        try:
+            while True:
+                want_object = (yield answer)
+                process.stdin.write('%s\n' % want_object)
+                process.stdin.flush()
+                response = process.stdout.readline()
+                if (not response
+                    or response[-1] != '\n'):
+                    # eof with possible partial line
+                    # TODO get exit status & process
+                    raise RuntimeError('git cat-file exited early')
+                response = response[:-1]
+                got_object, rest = response.split(' ', 1)
+                if rest == 'missing':
+                    answer = dict(
+                        object=got_object,
+                        type=rest,
+                        )
+                else:
+                    type_, size = rest.split(' ', 1)
+                    size = int(size)
+                    data = process.stdout.read(size)
+                    if len(data) != size:
+                        raise RuntimeError('git cat-file exited early')
+                    lf = process.stdout.read(1)
+                    if lf != '\n':
+                        raise RuntimeError('git cat-file missing newline')
+                    answer = dict(
+                        object=got_object,
+                        type=type_,
+                        size=size,
+                        contents=StringIO(data),
+                        )
+        except GeneratorExit:
+            process.stdin.close()
+            data = process.stdout.read()
+            if data:
+                raise RuntimeError('git cat-file gave weird trailer data')
+            returncode = process.wait()
+            if returncode != 0:
+                raise RuntimeError('git cat-file failed')
+    g = do_batch_cat_file(repo)
+    g.next()
+    return g
 
 def get_object_size(repo, object):
     process = subprocess.Popen(

@@ -208,6 +208,50 @@ def test_cat_file_bad_notfound():
         )
     eq(str(e), 'git cat-file failed')
 
+def test_batch_cat_file():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    one = commands.write_object(repo=tmp, content='FOO')
+    two = commands.write_object(repo=tmp, content='BAR')
+    g = commands.batch_cat_file(repo=tmp)
+
+    got = g.send(one)
+    eq(sorted(got.keys()), ['contents', 'object', 'size', 'type'])
+    eq(got['type'], 'blob')
+    eq(got['size'], 3)
+    eq(got['object'], one)
+    eq(got['contents'].read(), 'FOO')
+
+    got = g.send(two)
+    eq(sorted(got.keys()), ['contents', 'object', 'size', 'type'])
+    eq(got['type'], 'blob')
+    eq(got['size'], 3)
+    eq(got['object'], two)
+    eq(got['contents'].read(), 'BAR')
+
+    g.close()
+
+def test_batch_cat_file_bad_notfound():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    one = commands.write_object(repo=tmp, content='FOO')
+    g = commands.batch_cat_file(repo=tmp)
+
+    got = g.send('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')
+    eq(sorted(got.keys()), ['object', 'type'])
+    eq(got['type'], 'missing')
+    eq(got['object'], 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')
+
+    # it should still be usable after the error
+    got = g.send(one)
+    eq(sorted(got.keys()), ['contents', 'object', 'size', 'type'])
+    eq(got['type'], 'blob')
+    eq(got['size'], 3)
+    eq(got['object'], one)
+    eq(got['contents'].read(), 'FOO')
+
+    g.close()
+
 def test_get_object_size():
     tmp = maketemp()
     commands.init_bare(tmp)
