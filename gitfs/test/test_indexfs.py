@@ -141,3 +141,26 @@ def test_set_sha1_mass():
     with thud.open() as f:
         got = f.read()
     eq(got, 'one')
+
+def test_open_readonly():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    index = os.path.join(tmp, 'index')
+    commands.init_bare(repo)
+    root = indexfs.IndexFS(
+        repo=repo,
+        index=index,
+        )
+    one = root.child('one')
+    with one.open('w') as f:
+        f.write('one')
+
+    old = os.stat(index)
+    with one.open() as f:
+        _ = f.read(1)
+    new = os.stat(index)
+    # read only opens shouldn't bother editing the index, that just
+    # slows things down
+    eq(old.st_dev, new.st_dev)
+    eq(old.st_ino, new.st_ino)
+    eq(old.st_mtime, new.st_mtime)

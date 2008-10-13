@@ -185,20 +185,28 @@ class IndexFS(WalkMixin):
             with file(tmp, 'wb') as f:
                 f.write(content)
             os.rename(tmp, work)
-            current_users = self.open_files[self.path] = set()
+            current_users = self.open_files[self.path] = dict(
+                users=set(),
+                writable=False,
+                )
 
         f = NotifyOnCloseFile(work, mode, callback=self._close_file)
-        current_users.add(f)
+        current_users['users'].add(f)
+        if mode not in ['r', 'rb']:
+            current_users['writable'] = True
         return f
 
     def _close_file(self, f):
-        # flush it so we can open it by name and actually see the data
-        f.flush()
+        if f.mode not in ['r', 'rb']:
+            # flush it so we can open it by name and actually see the
+            # data
+            f.flush()
         current_users = self.open_files[self.path]
-        current_users.remove(f)
-        if not current_users:
-            # last user closed the file, write it to git object
-            # storage and update index
+        current_users['users'].remove(f)
+        if (current_users['writable']
+            and not current_users['users']):
+            # last user closed a file that has been writable at some
+            # point, write it to git object storage and update index
             with file(f.name, 'rb') as slurp:
                 content = slurp.read()
             os.unlink(f.name)
