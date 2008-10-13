@@ -105,3 +105,39 @@ def test_set_sha1_missing():
         bar.open,
         )
     eq(str(e), 'git cat-file failed')
+
+def test_set_sha1_mass():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    index = os.path.join(tmp, 'index')
+    commands.init_bare(repo)
+    root = indexfs.IndexFS(
+        repo=repo,
+        index=index,
+        )
+    one = root.child('one')
+    with one.open('w') as f:
+        f.write('one')
+    one_sha = one.git_get_sha1()
+    two = root.child('two')
+    with two.open('w') as f:
+        f.write('two')
+    two_sha = two.git_get_sha1()
+
+    bar = root.child('bar')
+    quux = root.child('quux')
+    thud = root.child('thud')
+    root.git_mass_set_sha1([
+            (bar, one_sha),
+            (quux, two_sha),
+            (thud, one_sha),
+            ])
+    with bar.open() as f:
+        got = f.read()
+    eq(got, 'one')
+    with quux.open() as f:
+        got = f.read()
+    eq(got, 'two')
+    with thud.open() as f:
+        got = f.read()
+    eq(got, 'one')

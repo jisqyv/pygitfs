@@ -111,6 +111,36 @@ class IndexFS(WalkMixin):
             os.strerror(errno.ENOENT),
             )
 
+    def git_mass_set_sha1(self, edits):
+        """
+        Set the git sha1 for many objects.
+
+        C{edits} is an iterable of 2-tuples, with an C{IndexFS}
+        instance and a sha1.
+
+        See also C{git_set_sha1}.
+        """
+        def g(edits):
+            for edit in edits:
+                (p, object) = edit
+                if not isinstance(p, IndexFS):
+                    raise RuntimeError(
+                        'Path must be an IndexFS path.')
+                if (p.repo != self.repo
+                    or p.index != self.index):
+                    raise RuntimeError(
+                        'Path is from a different IndexFS.')
+                yield dict(
+                    # TODO mode
+                    path=p.path,
+                    object=object,
+                    )
+        commands.update_index(
+            repo=self.repo,
+            index=self.index,
+            files=g(edits),
+            )
+
     def git_set_sha1(self, object):
         """
         Set the git sha1 for this object.
@@ -119,17 +149,9 @@ class IndexFS(WalkMixin):
         another object. The new content has to be in the repository
         already; this is not verified in any way.
         """
-        commands.update_index(
-            repo=self.repo,
-            index=self.index,
-            files=[
-                dict(
-                    # TODO mode, stat the file?
-                    object=object,
-                    path=self.path,
-                    ),
-                ],
-            )
+        self.git_mass_set_sha1([
+                (self, object),
+                ])
 
     def open(self, mode='r'):
         path_sha = hashlib.sha1(self.path).hexdigest()
