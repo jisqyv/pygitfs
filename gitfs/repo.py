@@ -3,6 +3,7 @@ import os
 
 from gitfs import commands
 from gitfs import indexfs
+from gitfs import readonly
 
 def maybe_mkdir(*a, **kw):
     try:
@@ -132,3 +133,6 @@ class Repository(object):
 
     def transaction(self, ref=None, index=None):
         return Transaction(repo=self, ref=ref, index=index)
+
+    def readonly(self, ref=None):
+        return readonly.ReadOnlyGitFS(repo=self.path, rev=ref)
