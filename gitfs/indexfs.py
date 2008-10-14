@@ -225,6 +225,8 @@ class IndexFS(WalkMixin):
             path=self.path,
             children=True,
             ):
+            # TODO OMG THIS IS STUPID, always retrieves full subtree
+            # (so for root, always dumps whole index)
             if self.path == '':
                 prefix = ''
             else:
