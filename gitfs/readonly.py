@@ -75,7 +75,22 @@ class ReadOnlyGitFS(WalkMixin):
         return p
 
     def __enter__(self):
-        return self
+        """
+        Entering a context takes a snapshot.
+        """
+        rev = commands.rev_parse(
+            repo=self.repo,
+            rev=self.rev,
+            )
+        if rev is None:
+            # no initial commit but you ask for a snapshot?
+            # i'm going to give you the empty tree..
+            rev = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+        return self.__class__(
+            repo=self.repo,
+            rev=rev,
+            path=self.path,
+            )
 
     def __exit__(self, type_, value, traceback):
         pass

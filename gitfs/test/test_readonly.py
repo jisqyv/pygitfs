@@ -79,3 +79,29 @@ def test_iter():
             sorted(root.child('bar')),
             [root.child('bar').child('baz')],
             )
+
+def test_enter():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    r = repo.Repository(tmp)
+    with r.transaction() as root:
+        with root.child('foo').open('w') as f:
+            f.write('FOO')
+    head = commands.rev_parse(repo=tmp, rev='HEAD')
+    assert head is not None
+    with readonly.ReadOnlyGitFS(
+        repo=tmp,
+        rev='HEAD',
+        ) as root:
+        eq(root.rev, head)
+
+def test_enter_no_initial_commit():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    with readonly.ReadOnlyGitFS(
+        repo=tmp,
+        rev='HEAD',
+        ) as root:
+        eq(sorted(root), [])
+        # well-known empty tree sha
+        eq(root.rev, '4b825dc642cb6eb9a060e54bf8d69288fbee4904')
