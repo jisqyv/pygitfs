@@ -98,6 +98,12 @@ def test_rev_parse():
     got = commands.rev_parse(repo=tmp, rev='HEAD')
     eq(got, 'e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27')
 
+def test_rev_parse_no_initial():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    got = commands.rev_parse(repo=tmp, rev='HEAD')
+    eq(got, None)
+
 def test_ls_tree():
     tmp = maketemp()
     commands.init_bare(tmp)
