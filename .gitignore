@@ -1,3 +1,5 @@
 *.py[co]
 /gitfs/test/tmp
 /.coverage
+/dist
+/*.egg-info
