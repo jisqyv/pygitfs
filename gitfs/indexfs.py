@@ -423,8 +423,6 @@ class IndexFS(WalkMixin):
             )
 
         self.path = new_path.path
-        # TODO don't return self, mutating is good enough
-        return self
 
     def size(self):
         object = self.git_get_sha1()
