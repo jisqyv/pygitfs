@@ -3,6 +3,8 @@ from __future__ import with_statement
 import errno
 import hashlib
 import os
+import posix
+import stat
 
 from fs import (
     InsecurePathError,
@@ -429,6 +431,35 @@ class IndexFS(WalkMixin):
 
         # didn't match anything -> don't even exist
         return False
+
+    def stat(self):
+        if self.path == '':
+            return posix.stat_result(
+                [stat.S_IFDIR + 0777, 0,0,0,0,0,0,0,0,0])
+        for data in commands.ls_files(
+            repo=self.repo,
+            index=self.index,
+            path=self.path,
+            children=False,
+            ):
+            if data['path'] == self.path:
+                mode = int(data['mode'], 8)
+                size = commands.get_object_size(
+                    repo=self.repo,
+                    object=data['object'],
+                    )
+                return posix.stat_result([mode, 0,0,0,0,0,size,0,0,0])
+            else:
+                # if current path has children, it must be a dir
+                assert data['path'].startswith(self.path + '/')
+                return posix.stat_result(
+                    [stat.S_IFDIR + 0777, 0,0,0,0,0,0,0,0,0])
+
+        # not found
+        raise OSError(
+            errno.ENOENT,
+            os.strerror(errno.ENOENT),
+            )
 
     def rename(self, new_path):
         if not isinstance(new_path, IndexFS):
