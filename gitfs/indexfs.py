@@ -360,6 +360,8 @@ class IndexFS(WalkMixin):
         self.remove()
 
     def isdir(self):
+        if self.path == '':
+            return True
         for data in commands.ls_files(
             repo=self.repo,
             index=self.index,
