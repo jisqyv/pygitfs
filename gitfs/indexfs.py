@@ -409,12 +409,28 @@ class IndexFS(WalkMixin):
                 children=False,
                 ):
                 if data['path'] == self.path:
+                    # delete the old one
+                    delete = {}
+                    delete.update(data)
+                    delete['mode'] = '0'
+                    yield delete
+
+                    # add the new one
                     data['path'] = new_path.path
+                    yield data
                 else:
                     prefix = self.path + '/'
                     assert data['path'][:len(prefix)] == prefix
+
+                    # delete the old one
+                    delete = {}
+                    delete.update(data)
+                    delete['mode'] = '0'
+                    yield delete
+
+                    # add the new one
                     data['path'] = new_path.path + '/' + data['path'][len(prefix):]
-                yield data
+                    yield data
 
         commands.update_index(
             repo=self.repo,
