@@ -219,12 +219,15 @@ class IndexFS(WalkMixin):
 
     def __iter__(self):
         last_subdir = None
+        saw_children = False
         for data in commands.ls_files(
             repo=self.repo,
             index=self.index,
             path=self.path,
             children=True,
             ):
+            saw_children = True
+
             # TODO OMG THIS IS STUPID, always retrieves full subtree
             # (so for root, always dumps whole index)
             if self.path == '':
@@ -250,6 +253,14 @@ class IndexFS(WalkMixin):
                     yield self.child(head)
             else:
                 yield self.child(relative)
+
+        if not saw_children:
+            # it's either not a dir or it doesn't exist..
+            # TODO make tests differentiate between those
+            if self.path == '':
+                # except root always exists
+                return
+            raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
 
     def parent(self):
         head, tail = os.path.split(self.path)
