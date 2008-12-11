@@ -372,6 +372,26 @@ class IndexFS(WalkMixin):
         # i have no children, therefore i am not a directory
         return False
 
+    def isfile(self):
+        if self.path == '':
+            # root directory is never a file
+            return False
+        for data in commands.ls_files(
+            repo=self.repo,
+            index=self.index,
+            path=self.path,
+            children=False,
+            ):
+            if data['path'] == self.path:
+                return data['mode'] in ['100644', '100755']
+            else:
+                # if current path has children, it can't be a file
+                assert data['path'].startswith(self.path + '/')
+                return False
+
+        # didn't match anything -> don't even exist
+        return False
+
     def exists(self):
         if self.path == '':
             # root directory always exists
