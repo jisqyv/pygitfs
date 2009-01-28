@@ -636,3 +636,128 @@ def test_update_ref_oldvalue_bad():
 # TODO unit test update_ref with newvalue=None (delete)
 
 # TODO unit test update_ref reason!=None
+
+def test_rev_list():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    got = commands.rev_list(repo=tmp)
+    got = iter(got)
+    eq(got.next(), '27f952fd48ce824454457b9f28bb97091bc5422e')
+    eq(got.next(), 'e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27')
+    assert_raises(StopIteration, got.next)
+
+def test_rev_list_exclude():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    got = commands.rev_list(
+        repo=tmp,
+        exclude=['e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27'],
+        )
+    got = iter(got)
+    eq(got.next(), '27f952fd48ce824454457b9f28bb97091bc5422e')
+    assert_raises(StopIteration, got.next)
+
+def test_rev_list_reverse():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    got = commands.rev_list(
+        repo=tmp,
+        reverse=True,
+        )
+    got = iter(got)
+    eq(got.next(), 'e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27')
+    eq(got.next(), '27f952fd48ce824454457b9f28bb97091bc5422e')
+    assert_raises(StopIteration, got.next)

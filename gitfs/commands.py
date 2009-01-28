@@ -557,3 +557,43 @@ def update_ref(
     returncode = process.wait()
     if returncode != 0:
         raise RuntimeError('git update-ref failed')
+
+def rev_list(
+    repo,
+    include=None,
+    exclude=None,
+    # TODO max_count
+    # TODO skip
+    reverse=None,
+    ):
+    if include is None:
+        include = ['HEAD']
+    if exclude is None:
+        exclude = []
+    if reverse is None:
+        reverse = False
+    args = [
+            'git',
+            '--git-dir=%s' % repo,
+            'rev-list',
+            '--stdin',
+            ]
+    if reverse:
+        args.append('--reverse')
+    process = subprocess.Popen(
+        args=args,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        close_fds=True,
+        )
+    for committish in include:
+        process.stdin.write('%s\n' % committish)
+    for committish in exclude:
+        process.stdin.write('^%s\n' % committish)
+    process.stdin.close()
+    for sha in process.stdout:
+        sha = sha.rstrip('\n')
+        yield sha
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git rev-list failed')
