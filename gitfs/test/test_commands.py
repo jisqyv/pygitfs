@@ -149,7 +149,7 @@ def test_ls_tree():
         )
     assert_raises(StopIteration, g.next)
 
-def test_ls_tree_all():
+def test_ls_tree_children_false():
     tmp = maketemp()
     commands.init_bare(tmp)
     commands.fast_import(
@@ -173,16 +173,7 @@ def test_ls_tree_all():
                 ),
             ],
         )
-    g = commands.ls_tree(repo=tmp, children=False)
-    eq(
-        g.next(),
-        dict(
-            mode='100755',
-            type='blob',
-            object='add8373108657cb230a5379a6fcdaab73f330642',
-            path='bar',
-            ),
-        )
+    g = commands.ls_tree(repo=tmp, path='quux', children=False)
     eq(
         g.next(),
         dict(
@@ -190,6 +181,42 @@ def test_ls_tree_all():
             type='tree',
             object='d513b699a47153aad2f0cb7ea2cb9fde8c177428',
             path='quux',
+            ),
+        )
+    assert_raises(StopIteration, g.next)
+
+def test_ls_tree_children_true():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        mode='100755',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    g = commands.ls_tree(repo=tmp, path='quux', children=True)
+    eq(
+        g.next(),
+        dict(
+            type='blob',
+            mode='100644',
+            object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
+            path='quux/foo',
             ),
         )
     assert_raises(StopIteration, g.next)
