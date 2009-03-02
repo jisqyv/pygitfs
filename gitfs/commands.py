@@ -172,6 +172,7 @@ def ls_tree(
     path=None,
     treeish=None,
     children=None,
+    recursive=None,
     ):
     if path is None:
         path = ''
@@ -179,22 +180,29 @@ def ls_tree(
         treeish = 'HEAD'
     if children is None:
         children = False
+    if recursive is None:
+        recursive = False
     assert not path.startswith('/')
     assert not path.endswith('/')
     if children:
         if path:
             path = path+'/'
+    args = [
+        'git',
+        '--git-dir=%s' % repo,
+        'ls-tree',
+        '-z',
+        '--full-name',
+        ]
+    if recursive:
+        args.append('-r')
+    args.extend([
+        treeish,
+        '--',
+        path,
+        ])
     process = subprocess.Popen(
-        args=[
-            'git',
-            '--git-dir=%s' % repo,
-            'ls-tree',
-            '-z',
-            '--full-name',
-            treeish,
-            '--',
-            path,
-            ],
+        args=args,
         close_fds=True,
         stdout=subprocess.PIPE,
         )

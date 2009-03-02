@@ -221,6 +221,51 @@ def test_ls_tree_children_true():
         )
     assert_raises(StopIteration, g.next)
 
+def test_ls_tree_recursive():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        mode='100755',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    g = commands.ls_tree(repo=tmp, recursive=True)
+    eq(
+        g.next(),
+        dict(
+            mode='100755',
+            type='blob',
+            object='add8373108657cb230a5379a6fcdaab73f330642',
+            path='bar',
+            ),
+        )
+    eq(
+        g.next(),
+        dict(
+            type='blob',
+            mode='100644',
+            object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
+            path='quux/foo',
+            ),
+        )
+    assert_raises(StopIteration, g.next)
+
 def test_cat_file():
     tmp = maketemp()
     commands.init_bare(tmp)
