@@ -62,23 +62,15 @@ class Transaction(object):
             # no exception -> commit transaction
             assert tree is not None, \
                 "TemporaryIndexFS must write the tree."
-            if self.original is None:
-                # this would be the initial commit
-                if tree == '4b825dc642cb6eb9a060e54bf8d69288fbee4904':
-                    # well-known empty tree sha; don't create initial
-                    # commit if it would be empty
-                    return
-            if self.original is not None:
-                orig_tree = commands.rev_parse(
-                    repo=self.repo.path,
-                    rev='%s^{tree}' % self.original,
-                    )
-                if tree == orig_tree:
-                    # not initial commit and does not change the tree
-                    return
             parents = []
             if self.original is not None:
                 parents.append(self.original)
+            if not commands.is_commit_needed(
+                repo=self.repo.path,
+                tree=tree,
+                parents=parents,
+                ):
+                return
             self.commit = commands.commit_tree(
                 repo=self.repo.path,
                 tree=tree,

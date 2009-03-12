@@ -612,6 +612,148 @@ def test_commit_tree():
         )
     eq(commit, '7a95f3e3276c9704d290375660fb143a3fe0bbcb')
 
+def test_is_commit_needed_root_empty():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    index = os.path.join(tmp, 'index')
+    tree = commands.write_tree(
+        repo=repo,
+        index=index,
+        )
+    got = commands.is_commit_needed(
+        repo=repo,
+        tree=tree,
+        parents=[],
+        )
+    eq(got, False)
+
+def test_is_commit_needed_root_simple():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    index = os.path.join(tmp, 'index')
+    sha_foo = commands.write_object(repo=repo, content='FOO')
+    commands.update_index(
+        repo=repo,
+        index=index,
+        files=[
+            dict(
+                object=sha_foo,
+                path='quux/foo',
+                ),
+            ],
+        )
+    tree = commands.write_tree(
+        repo=repo,
+        index=index,
+        )
+    got = commands.is_commit_needed(
+        repo=repo,
+        tree=tree,
+        parents=[],
+        )
+    eq(got, True)
+
+def test_is_commit_needed_merge():
+    got = commands.is_commit_needed(
+        repo='/does-not-exist',
+        tree='deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+        parents=[
+            '1111111111111111111111111111111111111111',
+            '2222222222222222222222222222222222222222',
+            ],
+        )
+    eq(got, True)
+
+def test_is_commit_needed_no_change():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    head = commands.rev_parse(repo=tmp, rev='HEAD')
+    tree = commands.rev_parse(repo=tmp, rev='HEAD^{tree}')
+    got = commands.is_commit_needed(
+        repo=repo,
+        tree=tree,
+        parents=[head],
+        )
+    eq(got, False)
+
+def test_is_commit_needed_has_change():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    head = commands.rev_parse(repo=tmp, rev='HEAD')
+    tree = commands.rev_parse(repo=tmp, rev='HEAD^{tree}')
+    got = commands.is_commit_needed(
+        repo=tmp,
+        tree='deadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+        parents=[head],
+        )
+    eq(got, True)
+
+def test_is_commit_needed_no_change():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    index = os.path.join(tmp, 'index')
+    sha_foo = commands.write_object(repo=repo, content='FOO')
+    commands.update_index(
+        repo=repo,
+        index=index,
+        files=[
+            dict(
+                object=sha_foo,
+                path='quux/foo',
+                ),
+            ],
+        )
+    tree = commands.write_tree(
+        repo=repo,
+        index=index,
+        )
+    got = commands.is_commit_needed(
+        repo=repo,
+        tree=tree,
+        parents=[],
+        )
+    eq(got, True)
+
 def test_update_ref():
     tmp = maketemp()
     commands.init_bare(tmp)

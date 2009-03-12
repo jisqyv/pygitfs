@@ -542,6 +542,43 @@ def commit_tree(
         raise RuntimeError('git commit-tree did not return a hash')
     return sha
 
+def is_commit_needed(
+    repo,
+    tree,
+    parents,
+    ):
+    """
+    Is this commit needed or useful?
+
+    Commit is considered needed if one of the following is true:
+
+    - it is a root commit with a non-empty tree
+    - it is a merge
+    - it changes the tree compared to (first) parent
+    """
+    if len(parents) == 0:
+        # this would be the initial commit
+        if tree == '4b825dc642cb6eb9a060e54bf8d69288fbee4904':
+            # well-known empty tree sha; don't create initial
+            # commit if it would be empty
+            return False
+        else:
+            return True
+
+    if len(parents) >= 2:
+        return True
+
+    orig_tree = rev_parse(
+        repo=repo,
+        rev='%s^{tree}' % parents[0],
+        )
+    if tree == orig_tree:
+        # not initial commit and does not change the tree
+        return False
+    else:
+        return True
+
+
 def update_ref(
     repo,
     ref,
