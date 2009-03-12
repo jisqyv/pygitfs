@@ -1,18 +1,6 @@
-import errno
-import os
-
 from gitfs import commands
 from gitfs import indexfs
 from gitfs import readonly
-
-def maybe_mkdir(*a, **kw):
-    try:
-        os.mkdir(*a, **kw)
-    except OSError, e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise
 
 class TransactionRaceLostError(Exception):
     """Transaction lost the race to update the ref."""
@@ -35,16 +23,10 @@ class Transaction(object):
             ref = 'HEAD'
         self.ref = ref
         index = kw.pop('index', None)
-        if index is None:
-            gitfs_dir = os.path.join(self.repo.path, 'pygitfs')
-            maybe_mkdir(gitfs_dir)
-            ident = id(self)
-            assert ident >= 0
-            index = os.path.join(
-                gitfs_dir,
-                'index.%d.%d' % (os.getpid(), ident),
-                )
-        self.index = index
+        self.indexfs = indexfs.TemporaryIndexFS(
+            repo=self.repo.path,
+            index=index,
+            )
         super(Transaction, self).__init__(**kw)
 
     def __repr__(self):
@@ -64,23 +46,22 @@ class Transaction(object):
             commands.read_tree(
                 repo=self.repo.path,
                 treeish=self.original,
-                index=self.index,
+                index=self.indexfs.index,
                 )
-        return indexfs.IndexFS(
-            repo=self.repo.path,
-            index=self.index,
-            )
+        return self.indexfs.__enter__()
 
     def __exit__(self, type_, value, traceback):
+        ret = self.indexfs.__exit__(type_, value, traceback)
+        assert not ret, \
+            "TemporaryIndexFS must not eat the exception."
+        tree = self.indexfs.tree
+        del self.indexfs
         if (type_ is None
             and value is None
             and traceback is None):
             # no exception -> commit transaction
-            tree = commands.write_tree(
-                repo=self.repo.path,
-                index=self.index,
-                )
-            os.unlink(self.index)
+            assert tree is not None, \
+                "TemporaryIndexFS must write the tree."
             if self.original is None:
                 # this would be the initial commit
                 if tree == '4b825dc642cb6eb9a060e54bf8d69288fbee4904':
@@ -98,7 +79,7 @@ class Transaction(object):
             parents = []
             if self.original is not None:
                 parents.append(self.original)
-            commit = commands.commit_tree(
+            self.commit = commands.commit_tree(
                 repo=self.repo.path,
                 tree=tree,
                 parents=parents,
@@ -110,7 +91,7 @@ class Transaction(object):
                 commands.update_ref(
                     repo=self.repo.path,
                     ref=self.ref,
-                    newvalue=commit,
+                    newvalue=self.commit,
                     oldvalue=self.original,
                     reason='pygitfs transaction commit',
                     )

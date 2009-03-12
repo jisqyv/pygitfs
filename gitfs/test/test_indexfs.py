@@ -164,3 +164,38 @@ def test_open_readonly():
     eq(old.st_dev, new.st_dev)
     eq(old.st_ino, new.st_ino)
     eq(old.st_mtime, new.st_mtime)
+
+def test_TemporaryIndexFS_simple():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    commands.init_bare(repo)
+    t = indexfs.TemporaryIndexFS(repo=repo)
+    with t as root:
+        with root.child('bar').open('w') as f:
+            f.write('hello')
+    eq(t.tree, '4d9fa708931786c374d879e71f89f97a68e73f94')
+    got = commands.cat_file(
+        repo=repo,
+        object='4d9fa708931786c374d879e71f89f97a68e73f94:bar',
+        )
+    eq(got, 'hello')
+
+def test_TemporaryIndexFS_abort():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    commands.init_bare(repo)
+
+    class MyException(Exception):
+        pass
+
+    try:
+        t = indexfs.TemporaryIndexFS(repo=repo)
+        with t as root:
+            with root.child('bar').open('w') as f:
+                f.write('hello')
+            raise MyException()
+    except MyException:
+        pass
+    else:
+        raise RuntimeError('Must not eat MyException!')
+    eq(t.tree, None)

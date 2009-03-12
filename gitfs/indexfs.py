@@ -14,6 +14,24 @@ from fs import (
 
 from gitfs import commands
 
+def maybe_mkdir(*a, **kw):
+    try:
+        os.mkdir(*a, **kw)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+
+def maybe_unlink(*a, **kw):
+    try:
+        os.unlink(*a, **kw)
+    except OSError, e:
+        if e.errno == errno.ENOENT:
+            pass
+        else:
+            raise
+
 class NotifyOnCloseFile(file):
     def __init__(self, *a, **kw):
         self.__callback = kw.pop('callback')
@@ -511,3 +529,61 @@ class IndexFS(WalkMixin):
             repo=self.repo,
             object=object,
             )
+
+class TemporaryIndexFS(object):
+    """
+    An C{IndexFS} context manager with a temporary file as index.
+
+    On non-error exit of the context, the index is written to the
+    repository. The resulting tree SHA can be read from the C{tree}
+    attribute.
+
+    For example::
+
+    >>> t = TemporaryIndexFS(repo='foo.git')
+    >>> with t as root:
+    ...     with root.child('bar').open('w') as f:
+    ...         f.write('hello')
+    >>> t.tree
+    '4d9fa708931786c374d879e71f89f97a68e73f94'
+
+    """
+
+    tree = None
+
+    def __init__(self, **kw):
+        repo = kw.pop('repo', None)
+        if repo is None:
+            repo = '.'
+        self.repo = repo
+
+        index = kw.pop('index', None)
+        if index is None:
+            gitfs_dir = os.path.join(self.repo, 'pygitfs')
+            maybe_mkdir(gitfs_dir)
+            ident = id(self)
+            assert ident >= 0
+            index = os.path.join(
+                gitfs_dir,
+                'index.%d.%d' % (os.getpid(), ident),
+                )
+        self.index = index
+
+        super(TemporaryIndexFS, self).__init__(**kw)
+
+    def __enter__(self):
+        return IndexFS(
+            repo=self.repo,
+            index=self.index,
+            )
+
+    def __exit__(self, type_, value, traceback):
+        if (type_ is None
+            and value is None
+            and traceback is None):
+            # no exception -> write tree
+            self.tree = commands.write_tree(
+                repo=self.repo,
+                index=self.index,
+                )
+        maybe_unlink(self.index)
