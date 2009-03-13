@@ -847,7 +847,34 @@ def test_update_ref_oldvalue_bad():
     got = commands.rev_parse(repo=tmp, rev='HEAD')
     eq(got, head)
 
-# TODO unit test update_ref with newvalue=None (delete)
+def test_update_ref_delete():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    head = commands.rev_parse(repo=tmp, rev='HEAD')
+    eq(head, 'e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27')
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/master',
+        newvalue=None,
+        )
+    got = commands.rev_parse(repo=tmp, rev='refs/heads/master')
+    eq(got, None)
 
 # TODO unit test update_ref reason!=None
 

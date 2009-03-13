@@ -590,9 +590,17 @@ def update_ref(
             'git',
             '--git-dir=%s' % repo,
             'update-ref',
-            ref,
-            newvalue,
             ]
+    if newvalue is None:
+        args.extend([
+                '-d',
+                ref,
+                ])
+    else:
+        args.extend([
+                ref,
+                newvalue,
+                ])
     if oldvalue is not None:
         args.append(oldvalue)
     process = subprocess.Popen(
