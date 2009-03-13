@@ -551,11 +551,18 @@ class TemporaryIndexFS(object):
 
     tree = None
 
+    # If rev is set, read that tree into the index when entering the
+    # context. This is safe to set after __init__ but before
+    # __enter__.
+    rev = None
+
     def __init__(self, **kw):
         repo = kw.pop('repo', None)
         if repo is None:
             repo = '.'
         self.repo = repo
+
+        self.rev = kw.pop('rev', None)
 
         index = kw.pop('index', None)
         if index is None:
@@ -572,6 +579,12 @@ class TemporaryIndexFS(object):
         super(TemporaryIndexFS, self).__init__(**kw)
 
     def __enter__(self):
+        if self.rev is not None:
+            commands.read_tree(
+                repo=self.repo,
+                treeish=self.rev,
+                index=self.index,
+                )
         return IndexFS(
             repo=self.repo,
             index=self.index,

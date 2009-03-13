@@ -42,12 +42,7 @@ class Transaction(object):
             rev=self.ref,
             )
         self.original = head
-        if head is not None:
-            commands.read_tree(
-                repo=self.repo.path,
-                treeish=self.original,
-                index=self.indexfs.index,
-                )
+        self.indexfs.rev = head
         return self.indexfs.__enter__()
 
     def __exit__(self, type_, value, traceback):

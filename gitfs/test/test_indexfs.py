@@ -199,3 +199,48 @@ def test_TemporaryIndexFS_abort():
     else:
         raise RuntimeError('Must not eat MyException!')
     eq(t.tree, None)
+
+def test_TemporaryIndexFS_rev():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235934 +0300',
+                files=[
+                    dict(
+                        path='quux/foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        mode='100755',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    prev = commands.rev_parse(repo=tmp, rev='HEAD~1')
+    t = indexfs.TemporaryIndexFS(repo=tmp, rev='HEAD')
+    eq(t.rev, 'HEAD')
+    t.rev = prev
+    with t as root:
+        eq(list(root), [root.child('quux')])
+    eq(t.rev, prev)
+    tree = commands.rev_parse(repo=tmp, rev='HEAD~1^{tree}')
+    eq(t.tree, tree)
