@@ -642,3 +642,47 @@ def rev_list(
     returncode = process.wait()
     if returncode != 0:
         raise RuntimeError('git rev-list failed')
+
+def for_each_ref(
+    repo,
+    count=None,
+    sort=None,
+    fields=None,
+    patterns=None,
+    ):
+    if fields is None:
+        fields = ['refname']
+
+    fields = list(fields)
+    format = '%00'.join(
+        '%%(%s)' % fieldname
+        for fieldname in fields
+        )
+    args = [
+            'git',
+            '--git-dir=%s' % repo,
+            'for-each-ref',
+            '--format=%s' % format,
+            ]
+    if count is not None:
+        args.append('--count=%d' % count)
+    if sort is not None:
+        args.append('--sort=%s' % sort)
+    if patterns is not None:
+        args.append('--')
+        args.extend(patterns)
+    process = subprocess.Popen(
+        args=args,
+        stdout=subprocess.PIPE,
+        close_fds=True,
+        )
+    for line in process.stdout:
+        line = line.rstrip('\n')
+        values = line.split('\0')
+        assert len(values) == len(fields)
+        data = {}
+        data.update(zip(fields, values))
+        yield data
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git for-each-ref failed')

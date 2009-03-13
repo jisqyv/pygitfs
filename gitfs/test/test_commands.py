@@ -975,3 +975,216 @@ def test_rev_list_reverse():
     eq(got.next(), 'e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27')
     eq(got.next(), '27f952fd48ce824454457b9f28bb97091bc5422e')
     assert_raises(StopIteration, got.next)
+
+def test_for_each_ref_simple():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/quux',
+        newvalue='HEAD',
+        oldvalue=40*'0',
+        )
+    got = commands.for_each_ref(
+        repo=tmp,
+        )
+    got = iter(got)
+    eq(got.next(), dict(refname='refs/heads/master'))
+    eq(got.next(), dict(refname='refs/heads/quux'))
+    assert_raises(StopIteration, got.next)
+
+def test_for_each_ref_count():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/quux',
+        newvalue='HEAD',
+        oldvalue=40*'0',
+        )
+    got = commands.for_each_ref(
+        repo=tmp,
+        count=1,
+        )
+    got = iter(got)
+    eq(got.next(), dict(refname='refs/heads/master'))
+    assert_raises(StopIteration, got.next)
+
+def test_for_each_ref_sort():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/quux',
+        newvalue='HEAD',
+        oldvalue=40*'0',
+        )
+    got = commands.for_each_ref(
+        repo=tmp,
+        sort='-refname',
+        )
+    got = iter(got)
+    eq(got.next(), dict(refname='refs/heads/quux'))
+    eq(got.next(), dict(refname='refs/heads/master'))
+    assert_raises(StopIteration, got.next)
+
+def test_for_each_ref_fields():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/quux',
+        newvalue='HEAD~1',
+        oldvalue=40*'0',
+        )
+    got = commands.for_each_ref(
+        repo=tmp,
+        fields=['refname', 'objecttype', 'objectname'],
+        )
+    got = iter(got)
+    eq(
+        got.next(),
+        dict(
+            refname='refs/heads/master',
+            objecttype='commit',
+            objectname='27f952fd48ce824454457b9f28bb97091bc5422e',
+            ),
+        )
+    eq(
+        got.next(),
+        dict(
+            refname='refs/heads/quux',
+            objecttype='commit',
+            objectname='e1b2f3253b18e7bdbd38db0cf295e6b3b608bb27',
+            ),
+        )
+    assert_raises(StopIteration, got.next)
+
+def test_for_each_ref_patterns():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/quux',
+        newvalue='HEAD',
+        oldvalue=40*'0',
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/notme',
+        newvalue='HEAD',
+        oldvalue=40*'0',
+        )
+    commands.update_ref(
+        repo=tmp,
+        ref='refs/heads/thud/xyzzy',
+        newvalue='HEAD',
+        oldvalue=40*'0',
+        )
+    got = commands.for_each_ref(
+        repo=tmp,
+        patterns=[
+            'refs/heads/thud',
+            'refs/heads/[mq]*',
+            ],
+        )
+    got = iter(got)
+    eq(got.next(), dict(refname='refs/heads/master'))
+    eq(got.next(), dict(refname='refs/heads/quux'))
+    eq(got.next(), dict(refname='refs/heads/thud/xyzzy'))
+    assert_raises(StopIteration, got.next)
