@@ -1215,3 +1215,118 @@ def test_for_each_ref_patterns():
     eq(got.next(), dict(refname='refs/heads/quux'))
     eq(got.next(), dict(refname='refs/heads/thud/xyzzy'))
     assert_raises(StopIteration, got.next)
+
+def test_merge_base_simple():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    one = commands.rev_parse(repo=tmp, rev='HEAD~1')
+    two = commands.rev_parse(repo=tmp, rev='HEAD')
+    commands.fast_import(
+        repo=tmp,
+        ref='refs/heads/another',
+        commits=[
+            dict(
+                parent=one,
+                message='three',
+                committer='John Doe <smith@example.com>',
+                commit_time='1216235942 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='quux',
+                        content='QUUX',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    three = commands.rev_parse(repo=tmp, rev='refs/heads/another')
+    got = commands.merge_base(
+        repo=tmp,
+        rev1=two,
+        rev2=three,
+        )
+    eq(got, one)
+
+def test_merge_base_disconnected():
+    tmp = maketemp()
+    commands.init_bare(tmp)
+    commands.fast_import(
+        repo=tmp,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    one = commands.rev_parse(repo=tmp, rev='HEAD')
+    commands.fast_import(
+        repo=tmp,
+        ref='refs/heads/another',
+        commits=[
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    two = commands.rev_parse(repo=tmp, rev='refs/heads/another')
+    got = commands.merge_base(
+        repo=tmp,
+        rev1=one,
+        rev2=two,
+        )
+    eq(got, None)

@@ -694,3 +694,31 @@ def for_each_ref(
     returncode = process.wait()
     if returncode != 0:
         raise RuntimeError('git for-each-ref failed')
+
+def merge_base(
+    repo,
+    rev1,
+    rev2,
+    ):
+    # TODO --all? put it in a separate function that is a generator
+    process = subprocess.Popen(
+        args=[
+            'git',
+            '--git-dir=%s' % repo,
+            'merge-base',
+            '--',
+            rev1,
+            rev2,
+            ],
+        stdout=subprocess.PIPE,
+        close_fds=True,
+        )
+    sha = process.stdout.read()
+    returncode = process.wait()
+    if returncode == 1:
+        # special case of "no merge base"
+        return None
+    if returncode != 0:
+        raise RuntimeError('git merge-base failed: %r' % returncode)
+    sha = sha.rstrip('\n')
+    return sha
