@@ -373,6 +373,45 @@ def read_tree(repo, treeish, index):
     if returncode != 0:
         raise RuntimeError('git read-tree failed')
 
+def read_tree_merge3(
+    repo,
+    index,
+    ancestor,
+    local,
+    remote,
+    trivial=None,
+    aggressive=None,
+    ):
+    if aggressive is None:
+        aggressive = False
+    env = {}
+    env.update(os.environ)
+    env['GIT_INDEX_FILE'] = index
+    args=[
+        'git',
+        '--git-dir=%s' % repo,
+        'read-tree',
+        '-m',
+        '-i', # assuming bare repos
+        ]
+    if trivial:
+        args.append('--trivial')
+    if aggressive:
+        args.append('--aggressive')
+    args.extend([
+            '%s' % ancestor,
+            '%s' % local,
+            '%s' % remote,
+            ])
+    process = subprocess.Popen(
+        args=args,
+        close_fds=True,
+        env=env,
+        )
+    returncode = process.wait()
+    if returncode != 0:
+        raise RuntimeError('git read-tree failed')
+
 def update_index(repo, index, files):
     env = {}
     env.update(os.environ)

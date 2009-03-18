@@ -389,6 +389,116 @@ def test_read_tree():
     st = os.stat(index)
     assert st.st_size > 0
 
+def test_read_tree_merge3():
+    tmp = maketemp()
+    repo = os.path.join(tmp, 'repo')
+    os.mkdir(repo)
+    commands.init_bare(repo)
+    commands.fast_import(
+        repo=repo,
+        commits=[
+            dict(
+                message='one',
+                committer='John Doe <jdoe@example.com>',
+                commit_time='1216235872 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    ],
+                ),
+            dict(
+                message='two',
+                committer='Jack Smith <smith@example.com>',
+                commit_time='1216235940 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='bar',
+                        content='BAR',
+                        ),
+                    ],
+                ),
+            ],
+        )
+    one = commands.rev_parse(repo=repo, rev='HEAD~1')
+    commands.fast_import(
+        repo=repo,
+        ref='refs/heads/bar',
+        commits=[
+            dict(
+                parent=one,
+                message='three',
+                committer='John Doe <smith@example.com>',
+                commit_time='1216235942 +0300',
+                files=[
+                    dict(
+                        path='foo',
+                        content='FOO',
+                        ),
+                    dict(
+                        path='quux',
+                        content='QUUX',
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    index = os.path.join(tmp, 'index')
+    commands.read_tree(
+        repo=repo,
+        treeish='HEAD',
+        index=index,
+        )
+    commands.read_tree_merge3(
+        repo=repo,
+        index=index,
+        ancestor=one,
+        local='HEAD',
+        remote='refs/heads/bar',
+        trivial=True,
+        )
+    g = commands.ls_files(
+        repo=repo,
+        index=index,
+        )
+    eq(
+        g.next(),
+        dict(
+            mode='100644',
+            object='add8373108657cb230a5379a6fcdaab73f330642',
+            path='bar',
+            ),
+        )
+    eq(
+        g.next(),
+        dict(
+            mode='100644',
+            object='d96c7efbfec2814ae0301ad054dc8d9fc416c9b5',
+            path='foo',
+            ),
+        )
+    eq(
+        g.next(),
+        dict(
+            mode='100644',
+            object='b9d4f2faa83cc1ad83ef7493ad6cbf08b086e4c1',
+            path='quux',
+            ),
+        )
+    assert_raises(StopIteration, g.next)
+
+# TODO unit test trivial=True failure
+
+# TODO unit test aggressive=True
+
+# TODO support handling unmerged results in index
+
 def test_update_index():
     tmp = maketemp()
     repo = os.path.join(tmp, 'repo')
