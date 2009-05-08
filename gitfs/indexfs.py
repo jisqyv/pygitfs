@@ -35,14 +35,19 @@ def maybe_unlink(*a, **kw):
 class NotifyOnCloseFile(file):
     def __init__(self, *a, **kw):
         self.__callback = kw.pop('callback')
+        self.__notified = False
         super(NotifyOnCloseFile, self).__init__(*a, **kw)
 
     def close(self):
-        self.__callback(self)
+        if not self.__notified:
+            self.__callback(self)
+            self.__notified = True
         super(NotifyOnCloseFile, self).close()
 
     def __exit__(self, *a, **kw):
-        self.__callback(self)
+        if not self.__notified:
+            self.__callback(self)
+            self.__notified = True
         return super(NotifyOnCloseFile, self).__exit__(*a, **kw)
 
 class IndexFS(WalkMixin):
