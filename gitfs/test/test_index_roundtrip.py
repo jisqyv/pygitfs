@@ -1,3 +1,5 @@
+import nose
+
 from gitfs.test.util import (
     maketemp,
     )
@@ -19,3 +21,9 @@ class Index_Tests(test_roundtrip.OperationsMixin):
             repo=repo,
             index=index,
             )
+
+    def test_rmdir_bad_notdir(self):
+        raise nose.SkipTest('TODO')
+
+    def test_rmdir_bad_notfound(self):
+        raise nose.SkipTest('TODO')
