@@ -20,7 +20,7 @@ TODO
     url = "http://eagain.net/software/pygitfs/",
 
     install_requires = [
-        'fs',
+        'filesystem',
         ],
 
     )

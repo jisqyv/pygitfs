@@ -6,7 +6,7 @@ import os
 import posix
 import stat
 
-from fs import (
+from filesystem import (
     InsecurePathError,
     WalkMixin,
     CrossDeviceRenameError,

@@ -4,7 +4,7 @@ from gitfs.test.util import (
     maketemp,
     )
 
-from fs.test import test_roundtrip
+from filesystem.test import test_roundtrip
 
 import os
 
@@ -26,4 +26,10 @@ class Index_Tests(test_roundtrip.OperationsMixin):
         raise nose.SkipTest('TODO')
 
     def test_rmdir_bad_notfound(self):
+        raise nose.SkipTest('TODO')
+
+    def test_unlink_notfound(self):
+        raise nose.SkipTest('TODO')
+
+    def test_remove_notfound(self):
         raise nose.SkipTest('TODO')

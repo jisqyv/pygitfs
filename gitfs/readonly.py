@@ -5,7 +5,7 @@ import hashlib
 import os
 from cStringIO import StringIO
 
-from fs import (
+from filesystem import (
     InsecurePathError,
     WalkMixin,
     CrossDeviceRenameError,
